@@ -44,9 +44,9 @@ inverter_params.Tpwm=0.02 % for PWM switching time const
 
 %-------------------------------------
 % % Turn controller gains off:
-inverter_params.Kpv=0;
-inverter_params.Kiv=0;
-inverter_params.Kwi=0; % make large to "turnoff" P-f loop
+% inverter_params.Kpv=0;
+% inverter_params.Kiv=0;
+% inverter_params.Kwi=0; % make large to "turnoff" P-f loop
 
 %------------------------------------
 % may not be used in phys converter block

@@ -60,7 +60,7 @@ PFlabel=[];
                     x0(2*k-1)=h_V([V; del],M_k{k}); ; % V
                     x0(2*k)=h_del([V; del],Mbar_k{k}); % del
                     if k==invBus
-                       vmag_inv=V(k);
+                       vmag_inv=V(k); %hold values to set x0 later
                        vang_inv=del(k);
                         Pt0=P(k);
                         Qt0=Q(k);
@@ -77,11 +77,15 @@ PFlabel=[];
   
 
 %%  Run fsolve
-x00= fsolve(@(x)boundaryinv_network2(0,x,c,inverter_params,Ts,invBus,knowns),x0);
-xdot_init=boundaryinv_network2(0,x00,c,inverter_params,Ts,invBus,knowns); % for debugging: compute xdot at first timestep
+n=size(x0,1); % tot num states,27
+M=zeros(n);
+M(1,1)=1; M(2,2)=1; M(3,3)=1; M(4,4)=1; M(7,7)=1; M(8,8)=1; M(9,9)=1; M(10,10)=1; M(13,13)=1;
+options = optimoptions('fsolve','Display','iter');
+x00= fsolve(@(x)boundaryinv_network2(0,x,c,inverter_params,Ts,invBus,knowns),x0,options);
+xdot_init=boundaryinv_network2(0,x00,c,inverter_params,Ts,invBus,knowns); % for debugging: compute [f(x),g(x)] at init timestep
 nInvState=13; 
-stateLabel1=[sprintf('inv%d ', 1:nInvState),PFlabel,'Pt Qt Vterm Vterm_theta']
-printmat([x0 x00 xdot_init], 'Init States', stateLabel1,'x0 x00 xdot')
+stateLabel1=[sprintf('inv%d ', 1:nInvState),PFlabel,'Pt Qt Vterm Vterm_theta'];
+printmat([diag(M) x0 x00 xdot_init], 'Init States', stateLabel1,'isDiffEq x0 x00 [f(x),g(x)]')
 
 %% Collect solns from fsolve
 % input: c, vmagVec, thetaVec, P, Q, x00
@@ -108,11 +112,9 @@ knownsFsolve=cell2mat(knowns);
 
 %% Solve DAE
 % solve DAE
-n=size(x0,1); % tot num states,27
-M=zeros(n);
-M(1,1)=1; M(2,2)=1; M(3,3)=1; M(4,4)=1; M(7,7)=1; M(8,8)=1; M(9,9)=1; M(10,10)=1; M(13,13)=1;
+
 options = odeset('Mass',M,'RelTol',1e-4,'AbsTol',1e-4);
-runItvl=[0 5];
+runItvl=[0 1];
 %Sload=[]; % store load changes to plot later
 
 % before step change in load Q
@@ -150,7 +152,6 @@ ofs=nInvState;
 
 %% Print known and unknown states  in order 1:N, and create graphs
 % graphs show the power network and nodal powers at different times of sim, as well as change in nodal powers    
-knownsFsolve=cell2mat(knowns);
 printmat(knownsBefore, 'knowns init',sprintf('node%d ', 1:size(knownsBefore,1)),'V del_rad P Q')
 printmat(knownsFsolve, 'knowns after fsolve',sprintf('node%d ', 1:size(knownsFsolve,1)),'V del_rad P Q')
 printmat(knownsODE15s, 'knowns after solve DAE',sprintf('node%d ', 1:size(knownsFsolve,1)),'V del_rad P Q')

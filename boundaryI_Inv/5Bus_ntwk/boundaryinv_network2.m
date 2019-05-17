@@ -97,6 +97,7 @@ L = size(c.branch,1);
                            Vterm*Iqterm-Q(k)-Qt;...
                             V(k)-Vterm;...
                             del(k)-Vterm_theta]; % save for after this loop                           
+                       %pause
                     end
                     % solve for V & del
                     dxdt=[dxdt; -V(k)+h_V([V; del],M_k{k})]; % create with possibilities of unknowns
@@ -105,48 +106,3 @@ L = size(c.branch,1);
     end
     dxdt=[dxdt; eqn]; % append to dxdt at end so can align with x asignments
 end
-
-%% Tips:
-% Inverter needs to be initialized as PQ bus instead of generator bus because it doesn’t regulate V directly
-% Why does this make sense? generator bus has P/V known, while PQ bus has
-% net P/Q known, and in this case we do know P and Q as Pnet=Pinv-Pload,
-% where we essentially have a PQ bus then add an inverter (nodal power
-% injection) on top. Initial PF solving just needs a modification to add
-% Pinv,Qinv into net nodal power at desired node
-% Questions: 
-% (1) How does rest of grid update after initialize wih PF run? The DAE
-% solver either implicitly or explicitly solves alg and diffeqs at each
-% timstep, the implicit vs. explicit refers to a batch (implicit) vs.
-% iterative (explicit) solving method
-% At each bus there are 2 knowns and 2 unknowns. At each timestep are we
-% updating knowns, unknowns, or both?
-
-% Review how to solve power flow: we start with an initial guess on the set
-% of all voltages then use the functions that relate voltages to
-% measurements to det guess of P,Q. Now we have 2 knowns per bus. Then we
-% do soliving algo which tries to arrive at a soln of voltages. Once we
-% have the soln, we use the functions again to compute the rest of the
-% flows
-
-% let V/del be a guess for the buses that have unknown V and/or del
-% let P/G knowns be the known net power generation at buses that have known
-% P and/or G
-% the solving algo reconciles how you claim to know all quantities with the
-% fact that the PF equations have to hold, until you arrive at a soln; %
-% the soln modifies V/del guess to satisfy the PF eqns, does not modify
-% known V/del/P/Q
-
-% PQ: know PQ, dont know V/del
-% PV: know PV, dont know Q,del
-% slack: know V/del, dont know P/Q
-% (1) V/delguess+P/Gknowns --> (2) V/del soln --> (3) P/Qsoln
-%  in each arrow is algebraic equations
-
-% in DAE: x0 has (1)
-% unknowns are states
-% knowns are params
-% P/Qguess=0, V/delguess = 1
-% how do we extract knowns from the case structure? the info seems to be available
-% do the knowns change in value during the dynamic sim? No, assume even V at PV bus doesnt change. 
-% The PQinv bus known PQ will be set differently at each timestep b/c of inv, and will affect the unknowns. However, for each solving of PF the PQ at that bus is still "known", just not constant across time like the other knowns
-% how do we assign the knowns to be params? fill a vector during initialization, then assign the vector to be a param, pull from param each time you update dxdt
